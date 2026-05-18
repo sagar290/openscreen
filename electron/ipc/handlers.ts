@@ -871,6 +871,7 @@ export function registerIpcHandlers(
 	getCountdownOverlayWindow?: () => BrowserWindow | null,
 	onRecordingStateChange?: (recording: boolean, sourceName: string) => void,
 	_switchToHud?: () => void,
+	onShortcutsSaved?: (shortcuts: unknown) => void,
 ) {
 	ipcMain.handle("get-sources", async (_, opts) => {
 		const sources = await desktopCapturer.getSources(opts);
@@ -1849,6 +1850,7 @@ export function registerIpcHandlers(
 	ipcMain.handle("save-shortcuts", async (_, shortcuts: unknown) => {
 		try {
 			await fs.writeFile(SHORTCUTS_FILE, JSON.stringify(shortcuts, null, 2), "utf-8");
+			onShortcutsSaved?.(shortcuts);
 			return { success: true };
 		} catch (error) {
 			console.error("Failed to save shortcuts:", error);

@@ -1,4 +1,5 @@
 export const SHORTCUT_ACTIONS = [
+	"globalOpen",
 	"addZoom",
 	"addTrim",
 	"addSpeed",
@@ -105,6 +106,7 @@ export function findConflict(
 }
 
 export const DEFAULT_SHORTCUTS: ShortcutsConfig = {
+	globalOpen: { key: "o", ctrl: true, shift: true },
 	addZoom: { key: "z" },
 	addTrim: { key: "t" },
 	addSpeed: { key: "s" },
@@ -116,6 +118,7 @@ export const DEFAULT_SHORTCUTS: ShortcutsConfig = {
 };
 
 export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
+	globalOpen: "Open OpenScreen",
 	addZoom: "Add Zoom",
 	addTrim: "Add Trim",
 	addSpeed: "Add Speed",
@@ -153,6 +156,17 @@ const KEY_LABELS: Record<string, string> = {
 	arrowright: "→",
 };
 
+const ELECTRON_KEY_LABELS: Record<string, string> = {
+	" ": "Space",
+	delete: "Delete",
+	backspace: "Backspace",
+	escape: "Esc",
+	arrowup: "Up",
+	arrowdown: "Down",
+	arrowleft: "Left",
+	arrowright: "Right",
+};
+
 export function formatBinding(binding: ShortcutBinding, isMac: boolean): string {
 	const parts: string[] = [];
 	if (binding.ctrl) parts.push(isMac ? "⌘" : "Ctrl");
@@ -160,6 +174,15 @@ export function formatBinding(binding: ShortcutBinding, isMac: boolean): string 
 	if (binding.alt) parts.push(isMac ? "⌥" : "Alt");
 	parts.push(KEY_LABELS[binding.key] ?? binding.key.toUpperCase());
 	return parts.join(" + ");
+}
+
+export function toElectronAccelerator(binding: ShortcutBinding, isMac: boolean): string {
+	const parts: string[] = [];
+	if (binding.ctrl) parts.push(isMac ? "Command" : "Control");
+	if (binding.shift) parts.push("Shift");
+	if (binding.alt) parts.push("Alt");
+	parts.push(ELECTRON_KEY_LABELS[binding.key] ?? binding.key.toUpperCase());
+	return parts.join("+");
 }
 
 export function mergeWithDefaults(partial: Partial<ShortcutsConfig>): ShortcutsConfig {

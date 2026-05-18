@@ -5,6 +5,7 @@ import {
 	app,
 	BrowserWindow,
 	desktopCapturer,
+	globalShortcut,
 	ipcMain,
 	Menu,
 	nativeImage,
@@ -12,6 +13,13 @@ import {
 	systemPreferences,
 	Tray,
 } from "electron";
+import {
+	DEFAULT_SHORTCUTS,
+	mergeWithDefaults,
+	type ShortcutBinding,
+	type ShortcutsConfig,
+	toElectronAccelerator,
+} from "../src/lib/shortcuts";
 import { mainT, setMainLocale } from "./i18n";
 import { getSelectedDesktopSource, registerIpcHandlers } from "./ipc/handlers";
 import {
@@ -43,6 +51,7 @@ if (process.platform === "linux") {
 }
 
 export const RECORDINGS_DIR = path.join(app.getPath("userData"), "recordings");
+const SHORTCUTS_FILE = path.join(app.getPath("userData"), "shortcuts.json");
 
 async function ensureRecordingsDir() {
 	try {
@@ -82,6 +91,7 @@ let tray: Tray | null = null;
 let selectedSourceName = "";
 const isMac = process.platform === "darwin";
 const trayIconSize = isMac ? 16 : 24;
+let registeredGlobalOpenAccelerator: string | null = null;
 
 // Tray Icons
 const defaultTrayIcon = getTrayIcon("openscreen.png", trayIconSize);
@@ -102,6 +112,45 @@ function showMainWindow() {
 	}
 
 	createWindow();
+}
+
+function getGlobalOpenBinding(shortcuts: unknown): ShortcutBinding {
+	const merged = mergeWithDefaults((shortcuts ?? {}) as Partial<ShortcutsConfig>);
+	const binding = merged.globalOpen;
+
+	if (!binding || typeof binding.key !== "string" || binding.key.length === 0) {
+		return DEFAULT_SHORTCUTS.globalOpen;
+	}
+
+	return binding;
+}
+
+function registerGlobalOpenShortcut(shortcuts: unknown) {
+	if (registeredGlobalOpenAccelerator) {
+		globalShortcut.unregister(registeredGlobalOpenAccelerator);
+		registeredGlobalOpenAccelerator = null;
+	}
+
+	const accelerator = toElectronAccelerator(getGlobalOpenBinding(shortcuts), isMac);
+	const registered = globalShortcut.register(accelerator, () => {
+		showMainWindow();
+	});
+
+	if (registered) {
+		registeredGlobalOpenAccelerator = accelerator;
+		return;
+	}
+
+	console.warn(`Unable to register global OpenScreen shortcut: ${accelerator}`);
+}
+
+async function registerSavedGlobalOpenShortcut() {
+	try {
+		const data = await fs.readFile(SHORTCUTS_FILE, "utf-8");
+		registerGlobalOpenShortcut(JSON.parse(data));
+	} catch {
+		registerGlobalOpenShortcut(DEFAULT_SHORTCUTS);
+	}
 }
 
 function isEditorWindow(window: BrowserWindow) {
@@ -424,6 +473,10 @@ app.on("window-all-closed", () => {
 	app.quit();
 });
 
+app.on("will-quit", () => {
+	globalShortcut.unregisterAll();
+});
+
 app.on("activate", () => {
 	// On OS X it's common to re-create a window in the app when the
 	// dock icon is clicked and there are no other windows open.
@@ -525,6 +578,7 @@ app.whenReady().then(async () => {
 	createTray();
 	updateTrayMenu();
 	setupApplicationMenu();
+	await registerSavedGlobalOpenShortcut();
 	// Ensure recordings directory exists
 	await ensureRecordingsDir();
 
@@ -554,6 +608,7 @@ app.whenReady().then(async () => {
 			}
 		},
 		switchToHudWrapper,
+		registerGlobalOpenShortcut,
 	);
 	createWindow();
 });

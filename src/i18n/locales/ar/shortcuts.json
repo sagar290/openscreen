@@ -14,6 +14,7 @@
 	"savedToast": "تم حفظ اختصارات لوحة المفاتيح",
 	"resetToast": "إعادة تعيين إلى الاختصارات الافتراضية — انقر فوق حفظ للتطبيق",
 	"actions": {
+		"globalOpen": "Open OpenScreen",
 		"addZoom": "إضافة تكبير",
 		"addTrim": "إضافة قص",
 		"addSpeed": "إضافة سرعة",
